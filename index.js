@@ -3,6 +3,7 @@ const http = require("http");
 const uuidv4 = require("uuid").v4;
 const url = require("url");
 const { MongoClient, ServerApiVersion } = require("mongodb");
+const { router, api } = require("./netlify/functions/api");
 
 const port = 8000;
 const MONGODB_URI = `mongodb+srv://2karinaoist:OistrachK@bether.ledfzng.mongodb.net/?retryWrites=true&w=majority`;
@@ -17,59 +18,95 @@ const client = new MongoClient(MONGODB_URI, {
   },
 });
 
-// http server
-const server = http.createServer(async (req, res) => {
-  const { pathname } = url.parse(req.url);
+api.get("/codeblocks", async (req, res) => {
+  try {
+    await client.connect();
+    await client.db("admin").command({ ping: 1 });
+    console.log(
+      "Pinged your deployment. You successfully connected to MongoDB!"
+    );
+    // Access my specific collection
+    const db = client.db("BeTher");
+    const items = await db.collection("CodeBlocks").find({}).toArray();
 
-  // Set CORS headers
-  res.setHeader("Access-Control-Allow-Origin", "*"); // Replace with your React app's URL
-  res.setHeader(
-    "Access-Control-Allow-Methods",
-    "GET, POST, PUT, DELETE, OPTIONS"
-  );
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-
-  // Handle CORS preflight request
-  if (req.method === "OPTIONS") {
-    res.writeHead(200);
-    res.end();
-    return;
-  }
-  //endpoints
-  // /codeblocks
-  if (pathname === "/codeblocks") {
-    try {
-      await client.connect();
-      await client.db("admin").command({ ping: 1 });
-      console.log(
-        "Pinged your deployment. You successfully connected to MongoDB!"
-      );
-      // Access my specific collection
-      const db = client.db("BeTher");
-      const items = await db.collection("CodeBlocks").find({}).toArray();
-
-      //response
-      res.writeHead(200, { "Content-Type": "application/json" });
-      res.end(JSON.stringify(items)); // Send code blocks as a JSON response
-    } catch (error) {
-      res.writeHead(500, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({ error: error.message }));
-    } finally {
-      // Ensures that the client will close when you finish/error
-      await client.close();
-    }
-  } // /numOfClients
-  else if (pathname === "/numOfClients") {
+    //response
     res.writeHead(200, { "Content-Type": "application/json" });
-    res.end(JSON.stringify(numOfClients)); // Send code blocks as a JSON response
-  } else {
-    res.writeHead(404, { "Content-Type": "text/plain" });
-    res.end("Not Found");
+    res.end(JSON.stringify(items)); // Send code blocks as a JSON response
+  } catch (error) {
+    res.writeHead(500, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ error: error.message }));
+  } finally {
+    // Ensures that the client will close when you finish/error
+    await client.close();
   }
 });
 
+api.get("/numOfClients", async (req, res) => {
+  res.writeHead(200, { "Content-Type": "application/json" });
+  res.end(JSON.stringify(numOfClients));
+});
+
+// http server
+// const server = http.createServer(async (req, res) => {
+//   const { pathname } = url.parse(req.url);
+
+//   // Set CORS headers
+//   res.setHeader("Access-Control-Allow-Origin", "*"); // Replace with your React app's URL
+//   res.setHeader(
+//     "Access-Control-Allow-Methods",
+//     "GET, POST, PUT, DELETE, OPTIONS"
+//   );
+//   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+
+//   // Handle CORS preflight request
+//   if (req.method === "OPTIONS") {
+//     res.writeHead(200);
+//     res.end();
+//     return;
+//   }
+//   //endpoints
+//   // /codeblocks
+//   if (pathname === "/codeblocks") {
+//     try {
+//       await client.connect();
+//       await client.db("admin").command({ ping: 1 });
+//       console.log(
+//         "Pinged your deployment. You successfully connected to MongoDB!"
+//       );
+//       // Access my specific collection
+//       const db = client.db("BeTher");
+//       const items = await db.collection("CodeBlocks").find({}).toArray();
+
+//       //response
+//       res.writeHead(200, { "Content-Type": "application/json" });
+//       res.end(JSON.stringify(items)); // Send code blocks as a JSON response
+//     } catch (error) {
+//       res.writeHead(500, { "Content-Type": "application/json" });
+//       res.end(JSON.stringify({ error: error.message }));
+//     } finally {
+//       // Ensures that the client will close when you finish/error
+//       await client.close();
+//     }
+//   } // /numOfClients
+//   else if (pathname === "/numOfClients") {
+//     res.writeHead(200, { "Content-Type": "application/json" });
+//     res.end(JSON.stringify(numOfClients)); // Send code blocks as a JSON response
+//   } else {
+//     res.writeHead(404, { "Content-Type": "text/plain" });
+//     res.end("Not Found");
+//   }
+// });
+
 // webSocket server
+const server = http.createServer(api);
 const wsServer = new WebSocketServer({ server });
+// const wsServer = new WebSocket.Server({
+//   noServer: true,
+// });
+
+// wsServer.on("connection", (socket) => {
+//   socket.on("message", (message) => console.log(message));
+// });
 
 const handleMessage = (bytes, uuid) => {
   const message = JSON.parse(bytes.toString());
@@ -98,6 +135,14 @@ const broadcast = () => {
     connection.send(message);
   });
 };
+
+// api.on("upgrade", (request, socket, head) => {
+//   console.log("upgrade");
+//   wsServer.handleUpgrade(request, socket, head, (websocket) => {
+//     console.log("handle upgrade");
+//     wsServer.emit("connection", websocket, request);
+//   });
+// });
 
 wsServer.on("connection", (connection, request) => {
   const { username } = url.parse(request.url, true).query;
