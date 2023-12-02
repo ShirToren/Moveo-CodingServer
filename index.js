@@ -103,7 +103,6 @@ export const startServer = (api) => {
   // const wsServer = new WebSocket.Server({
   //   noServer: true,
   // });
-  wsServer.port();
 
   // wsServer.on("connection", (socket) => {
   //   socket.on("message", (message) => console.log(message));
