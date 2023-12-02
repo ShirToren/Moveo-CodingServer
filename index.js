@@ -5,7 +5,7 @@ const url = require("url");
 const { MongoClient, ServerApiVersion } = require("mongodb");
 //const { api } = require("./netlify/functions/api");
 export const startServer = (api) => {
-  const port = 8000;
+  const port = process.env.port || 8000;
   const MONGODB_URI = `mongodb+srv://2karinaoist:OistrachK@bether.ledfzng.mongodb.net/?retryWrites=true&w=majority`;
   const connections = {};
   const users = {};
@@ -103,6 +103,7 @@ export const startServer = (api) => {
   // const wsServer = new WebSocket.Server({
   //   noServer: true,
   // });
+  wsServer.port();
 
   // wsServer.on("connection", (socket) => {
   //   socket.on("message", (message) => console.log(message));
@@ -159,7 +160,7 @@ export const startServer = (api) => {
     connection.on("close", () => handleClose(uuid));
   });
 
-  // server.listen(port, () => {
-  //   console.log(`WebSocket server is running on port ${port}`);
-  // });
+  server.listen(port, () => {
+    console.log(`WebSocket server is running on port ${port}`);
+  });
 };
